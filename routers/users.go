@@ -20,6 +20,11 @@ type App struct {
 func (app *App) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	// Контроллер для создания пользователя
 
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	var input models.RegisterInput
 
 	err := json.NewDecoder(r.Body).Decode(&input)
@@ -58,6 +63,11 @@ func (app *App) RegisterUser(w http.ResponseWriter, r *http.Request) {
 func (app *App) LoginUser(w http.ResponseWriter, r *http.Request) {
 	// Контроллер для входа в аккаунт
 
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	var input models.LoginInput
 
 	err := json.NewDecoder(r.Body).Decode(&input)
@@ -87,6 +97,11 @@ func (app *App) LoginUser(w http.ResponseWriter, r *http.Request) {
 func (app *App) UserProfile(w http.ResponseWriter, r *http.Request) {
 	// Контроллер для профиля текущего пользователя
 
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	userIDValue := r.Context().Value("userID")
 
 	if userIDValue == nil {
@@ -102,5 +117,11 @@ func (app *App) UserProfile(w http.ResponseWriter, r *http.Request) {
 	var user models.User
 	app.DB.First(&user, userID)
 
-	json.NewEncoder(w).Encode(user)
+	userSerializer := schemas.User{
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+		Email:     user.Email,
+	}
+
+	json.NewEncoder(w).Encode(userSerializer)
 }
