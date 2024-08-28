@@ -3,7 +3,9 @@ package routers
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"reflect"
 	"strconv"
 
 	"backend/models"
@@ -11,6 +13,16 @@ import (
 
 	"gorm.io/gorm"
 )
+
+func HasCar(w http.ResponseWriter, app *App, id uint) bool {
+	var car models.Car
+
+	if err := app.DB.First(&car, id).Error; err == nil {
+		return false
+	}
+
+	return true
+}
 
 func (app *App) CreateCar(w http.ResponseWriter, r *http.Request) {
 	// Контроллер для создания машины
@@ -22,6 +34,23 @@ func (app *App) CreateCar(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
+	}
+
+	v := reflect.ValueOf(input)
+	typeOfValue := v.Type()
+
+	for i := 0; i < v.NumField(); i++ {
+		field := v.Field(i)
+
+		if field.Kind() == reflect.String && field.String() == "" {
+			http.Error(w, fmt.Sprintf("Missing required field: %s", typeOfValue.Field(i).Name), http.StatusBadRequest)
+			return
+		}
+
+		if field.Kind() == reflect.Int && field.Int() == 0 {
+			http.Error(w, fmt.Sprintf("Missing required field: %s", typeOfValue.Field(i).Name), http.StatusBadRequest)
+			return
+		}
 	}
 
 	userIDValue := r.Context().Value("userID")
@@ -71,14 +100,14 @@ func (app *App) GetAllCars(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := app.DB.Model(&models.Car{}).Count(&totalCars).Error; err != nil {
-		http.Error(w, "could't count cars", http.StatusInternalServerError)
+		http.Error(w, "Could't count cars", http.StatusInternalServerError)
 		return
 	}
 
 	offset := (page - 1) * pageSize
 
 	if err := app.DB.Limit(pageSize).Offset(offset).Find(&cars).Error; err != nil {
-		http.Error(w, "counld't find retrieve cars", http.StatusInternalServerError)
+		http.Error(w, "Counld't find retrieve cars", http.StatusInternalServerError)
 		return
 	}
 
@@ -113,7 +142,7 @@ func (app *App) GetCarByID(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(idStr)
 
 	if err != nil {
-		http.Error(w, "invalid ID for car", http.StatusBadRequest)
+		http.Error(w, "Invalid ID for car", http.StatusBadRequest)
 		return
 	}
 
@@ -152,6 +181,6 @@ func (app *App) CarsCreateListView(w http.ResponseWriter, r *http.Request) {
 		app.CreateCar(w, r)
 
 	default:
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
