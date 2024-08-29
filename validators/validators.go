@@ -10,24 +10,48 @@ import (
 	"gorm.io/gorm"
 )
 
-func ValidatePassword(password, PasswordConfirm string) error {
+type ErrorResponse struct {
+	// Структура для ответа сервера на обработку ошибок
+
+	Details map[string]string `json:"details"`
+}
+
+func ValidateRegisterForm(firstName, lastName, email, password, PasswordConfirm string) map[string]string {
 	// Валидация пароля при регистрации
 
-	if len(password) < 6 {
-		return errors.New("длина пароля не может быть меньше шести символов")
+	validationErrors := make(map[string]string)
+
+	if firstName == "" {
+		validationErrors["first_name"] = "Поле 'first_name' обязательно"
 	}
 
-	if password != PasswordConfirm {
-		return errors.New("пароли не совпаают")
+	if lastName == "" {
+		validationErrors["last_name"] = "Поле 'last_name' обязательно"
+	}
+
+	if email == "" {
+		validationErrors["email"] = "Поле 'email' обязательно"
+	} else {
+		if !regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`).MatchString(email) {
+			validationErrors["email"] = "Формат поля 'email' некорректный"
+		}
+	}
+
+	if len(password) < 6 {
+		validationErrors["password"] = "Длина пароля не может быть меньше шести символов"
 	}
 
 	hasDigit := regexp.MustCompile(`[0-9]`).MatchString
 
 	if !hasDigit(password) {
-		return errors.New("пароль должен состоять из букв и цифр")
+		validationErrors["password"] = "Пароль должен состоять из букв и цифр"
 	}
 
-	return nil
+	if password != PasswordConfirm {
+		validationErrors["passwordConfirm"] = "Пароли не совпадают"
+	}
+
+	return validationErrors
 }
 
 func ValidateUserLogin(db *gorm.DB, email, password string) (*models.User, error) {
