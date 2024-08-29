@@ -34,9 +34,14 @@ func (app *App) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := validators.ValidatePassword(input.Password, input.PasswordConfirm); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+	validationErrors := validators.ValidateRegisterForm(input.FirstName, input.LastName, input.Email, input.Password, input.PasswordConfirm)
+
+	for k := range validationErrors {
+		if validationErrors[k] != "" {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(validators.ErrorResponse{Details: validationErrors})
+			return
+		}
 	}
 
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
